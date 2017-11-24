@@ -10,6 +10,11 @@ import org.jetbrains.annotations.Nullable;
  */
 public interface KeyValueService {
 
+    /**
+     * Removes all key-value objects.
+     */
+    void clear();
+
     @Nullable KeyValueEntity get(@NotNull String key);
 
     void set(@NotNull final KeyValueObject object);

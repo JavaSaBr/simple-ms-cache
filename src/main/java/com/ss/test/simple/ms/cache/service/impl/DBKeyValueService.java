@@ -24,6 +24,12 @@ public class DBKeyValueService implements KeyValueService {
     }
 
     @Override
+    @Transactional
+    public void clear() {
+        keyValueRepository.deleteAll();
+    }
+
+    @Override
     public @Nullable KeyValueEntity get(@NotNull final String key) {
         return keyValueRepository.findById(key).orElse(null);
     }
