@@ -13,6 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.*;
+
 @SpringBootTest
 @RunWith(SpringRunner.class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -86,5 +90,49 @@ public class SimpleMsCacheApplicationTests {
         Assert.assertEquals(by55.getValue(), "77");
 
         keyValueService.clear();
+    }
+
+    @Test
+    public void test4Concurrency() {
+
+        final ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        final List<Future<?>> futures = new ArrayList<>(100000);
+
+        for (int i = 0; i < 100000; i++) {
+
+            futures.add(executorService.submit(() -> {
+
+                final ThreadLocalRandom random = ThreadLocalRandom.current();
+                final String key = generateKey(random);
+
+                if (random.nextBoolean() || random.nextBoolean()) {
+                    keyValueService.get(key);
+                } else {
+                    keyValueService.set(new KeyValueObject(key, generateValue(random)));
+                }
+            }));
+        }
+
+        futures.forEach(future -> {
+            try {
+                future.get();
+            } catch (final InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        keyValueService.clear();
+    }
+
+    private @NotNull String generateKey(@NotNull final ThreadLocalRandom random) {
+
+        final int first = random.nextInt(0, 9);
+        final int second = random.nextInt(0, 9);
+
+        return String.valueOf(first) + second;
+    }
+
+    private @NotNull String generateValue(@NotNull final ThreadLocalRandom random) {
+        return String.valueOf(random.nextInt());
     }
 }

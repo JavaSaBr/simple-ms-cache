@@ -95,7 +95,7 @@ public class HotCacheDBKeyValueService extends DBKeyValueService {
     }
 
     @Override
-    protected @NotNull KeyValueEntity handleChanges(@NotNull final KeyValueEntity entity,
+    public @NotNull KeyValueEntity handleChanges(@NotNull final KeyValueEntity entity,
                                                     @NotNull final KeyValueObject object) {
 
         final KeyValueEntity newEntity = super.handleChanges(entity, object);

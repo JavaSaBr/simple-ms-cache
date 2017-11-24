@@ -10,6 +10,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.util.StringUtils;
 
 import javax.transaction.Transactional;
@@ -74,8 +76,18 @@ public class DBKeyValueService implements KeyValueService {
     }
 
     @Override
-    @Transactional
     public void set(@NotNull final KeyValueObject object) {
+        try {
+            tryToSet(object);
+        } catch (final DataIntegrityViolationException e) {
+            // it seems we found a collision with the key
+        } catch (final ObjectOptimisticLockingFailureException e) {
+            // it seems we have newer value of this
+        }
+    }
+
+    @Transactional
+    public void tryToSet(@NotNull final KeyValueObject object) {
         final Optional<KeyValueEntity> optional = keyValueRepository.findById(object.getKey());
         if (optional.isPresent()) {
             updateEntity(optional.get(), object);
@@ -113,13 +125,13 @@ public class DBKeyValueService implements KeyValueService {
         return now().plusHours(application.getLifeTime());
     }
 
-    protected @NotNull KeyValueEntity handleNoChanges(@NotNull final KeyValueEntity entity,
-                                                      @NotNull final KeyValueObject object) {
+    public @NotNull KeyValueEntity handleNoChanges(@NotNull final KeyValueEntity entity,
+                                                   @NotNull final KeyValueObject object) {
         return entity;
     }
 
-    protected @NotNull KeyValueEntity handleChanges(@NotNull final KeyValueEntity entity,
-                                                    @NotNull final KeyValueObject object) {
+    public @NotNull KeyValueEntity handleChanges(@NotNull final KeyValueEntity entity,
+                                                 @NotNull final KeyValueObject object) {
         entity.setValue(object.getValue());
         entity.setExpiredTime(getNewExpiredTime());
         return keyValueRepository.save(entity);
