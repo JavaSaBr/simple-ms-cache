@@ -1,26 +1,57 @@
 package com.ss.test.simple.ms.cache.service.impl;
 
+import com.ss.test.simple.ms.cache.SimpleMsCacheApplication;
 import com.ss.test.simple.ms.cache.db.entity.KeyValueEntity;
 import com.ss.test.simple.ms.cache.db.repository.KeyValueRepository;
 import com.ss.test.simple.ms.cache.dto.KeyValueObject;
 import com.ss.test.simple.ms.cache.service.KeyValueService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-@Service("keyValueService")
+/**
+ * @author JavaSaBr
+ */
 public class DBKeyValueService implements KeyValueService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DBKeyValueService.class);
 
     @NotNull
     private final KeyValueRepository keyValueRepository;
 
-    public DBKeyValueService(@NotNull final KeyValueRepository keyValueRepository) {
+    @NotNull
+    private final SimpleMsCacheApplication application;
+
+    @NotNull
+    private final Thread cleanThread;
+
+    public DBKeyValueService(@NotNull final KeyValueRepository keyValueRepository,
+                             @NotNull final SimpleMsCacheApplication application) {
         this.keyValueRepository = keyValueRepository;
+        this.application = application;
+        this.cleanThread = new Thread(this::cleanExpiredKeyValues);
+        this.cleanThread.start();
+    }
+
+    private void cleanExpiredKeyValues() {
+        while (true) {
+            try {
+                Thread.sleep(application.getCleanInterval() * 60 * 1000);
+            } catch (final InterruptedException e) {
+                LOGGER.warn(e.getMessage(), e);
+            }
+            try {
+                keyValueRepository.deleteByExpiredTimeBefore(LocalDateTime.now());
+            } catch (final RuntimeException e) {
+                LOGGER.warn(e.getMessage(), e);
+            }
+        }
     }
 
     @Override
@@ -70,17 +101,18 @@ public class DBKeyValueService implements KeyValueService {
     }
 
     protected @NotNull LocalDateTime getNewExpiredTime() {
-        return LocalDateTime.now().plusHours(1);
+        return LocalDateTime.now().plusHours(application.getLifeTime());
     }
 
-    protected void handleNoChanges(@NotNull final KeyValueEntity entity, @NotNull final KeyValueObject object) {
+    protected @NotNull KeyValueEntity handleNoChanges(@NotNull final KeyValueEntity entity,
+                                                      @NotNull final KeyValueObject object) {
+        return entity;
     }
 
-    protected void handleChanges(@NotNull final KeyValueEntity entity, @NotNull final KeyValueObject object) {
-
+    protected @NotNull KeyValueEntity handleChanges(@NotNull final KeyValueEntity entity,
+                                                    @NotNull final KeyValueObject object) {
         entity.setValue(object.getValue());
         entity.setExpiredTime(getNewExpiredTime());
-
-        keyValueRepository.save(entity);
+        return keyValueRepository.save(entity);
     }
 }
