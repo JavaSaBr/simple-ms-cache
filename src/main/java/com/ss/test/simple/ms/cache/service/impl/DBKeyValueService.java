@@ -1,5 +1,6 @@
 package com.ss.test.simple.ms.cache.service.impl;
 
+import static java.time.LocalDateTime.now;
 import com.ss.test.simple.ms.cache.SimpleMsCacheApplication;
 import com.ss.test.simple.ms.cache.db.entity.KeyValueEntity;
 import com.ss.test.simple.ms.cache.db.repository.KeyValueRepository;
@@ -28,18 +29,20 @@ public class DBKeyValueService implements KeyValueService {
     @NotNull
     private final SimpleMsCacheApplication application;
 
-    @NotNull
-    private final Thread cleanThread;
-
     public DBKeyValueService(@NotNull final KeyValueRepository keyValueRepository,
                              @NotNull final SimpleMsCacheApplication application) {
         this.keyValueRepository = keyValueRepository;
         this.application = application;
-        this.cleanThread = new Thread(this::cleanExpiredKeyValues);
-        this.cleanThread.start();
+        final Thread cleanThread = new Thread(this::cleanExpiredKeyValues);
+        cleanThread.start();
+    }
+
+    protected @NotNull SimpleMsCacheApplication getApplication() {
+        return application;
     }
 
     private void cleanExpiredKeyValues() {
+        final SimpleMsCacheApplication application = getApplication();
         while (true) {
             try {
                 Thread.sleep(application.getCleanInterval() * 60 * 1000);
@@ -47,11 +50,15 @@ public class DBKeyValueService implements KeyValueService {
                 LOGGER.warn(e.getMessage(), e);
             }
             try {
-                keyValueRepository.deleteByExpiredTimeBefore(LocalDateTime.now());
+                clean();
             } catch (final RuntimeException e) {
                 LOGGER.warn(e.getMessage(), e);
             }
         }
+    }
+
+    protected void clean() {
+        keyValueRepository.deleteByExpiredTimeBefore(now());
     }
 
     @Override
@@ -61,6 +68,7 @@ public class DBKeyValueService implements KeyValueService {
     }
 
     @Override
+    @Transactional
     public @Nullable KeyValueEntity get(@NotNull final String key) {
         return keyValueRepository.findById(key).orElse(null);
     }
@@ -101,7 +109,8 @@ public class DBKeyValueService implements KeyValueService {
     }
 
     protected @NotNull LocalDateTime getNewExpiredTime() {
-        return LocalDateTime.now().plusHours(application.getLifeTime());
+        final SimpleMsCacheApplication application = getApplication();
+        return now().plusHours(application.getLifeTime());
     }
 
     protected @NotNull KeyValueEntity handleNoChanges(@NotNull final KeyValueEntity entity,

@@ -68,19 +68,6 @@ public final class KeyValueEntity {
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final KeyValueEntity that = (KeyValueEntity) o;
-        return getKey() != null ? getKey().equals(that.getKey()) : that.getKey() == null;
-    }
-
-    @Override
-    public int hashCode() {
-        return getKey() != null ? getKey().hashCode() : 0;
-    }
-
-    @Override
     public String toString() {
         return "KeyValueEntity{" + "key='" + key + '\'' + ", value='" + value + '\'' + ", expiredTime=" + expiredTime +
                 '}';

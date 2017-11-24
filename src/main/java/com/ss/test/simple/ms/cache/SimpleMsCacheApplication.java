@@ -16,9 +16,12 @@ public class SimpleMsCacheApplication {
     @Value("${application.key.value.service.life.time}")
     private long lifeTime;
 
-	public static void main(final String[] args) {
-		SpringApplication.run(SimpleMsCacheApplication.class, args);
-	}
+    @Value("${application.key.value.service.hot.cache.max.size}")
+    private int hotCacheMaxSize;
+
+    public static void main(final String[] args) {
+        SpringApplication.run(SimpleMsCacheApplication.class, args);
+    }
 
     public long getCleanInterval() {
         return cleanInterval;
@@ -26,5 +29,9 @@ public class SimpleMsCacheApplication {
 
     public long getLifeTime() {
         return lifeTime;
+    }
+
+    public int getHotCacheMaxSize() {
+        return hotCacheMaxSize;
     }
 }
