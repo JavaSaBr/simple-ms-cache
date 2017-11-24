@@ -26,14 +26,14 @@ public class SimpleMsCacheApplicationTests {
     @Autowired
     private KeyValueService keyValueService;
 
-	@Test
-	public void contextLoads() {
-	}
+    @Test
+    public void contextLoads() {
+    }
 
     @Test
-	public void test1Inserting() {
+    public void test1Inserting() {
         keyValueService.clear();
-	    keyValueService.set(new KeyValueObject("4", "1"));
+        keyValueService.set(new KeyValueObject("4", "1"));
         keyValueService.set(new KeyValueObject("14", "3"));
         keyValueService.set(new KeyValueObject("21", "23"));
         keyValueService.set(new KeyValueObject("33", "70"));
